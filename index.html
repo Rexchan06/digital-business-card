@@ -180,33 +180,44 @@
         document.getElementById('resume-link').href = userData.resume;
 
         // ==========================================
-        // 3. VCF GENERATOR (SAVE CONTACT)
+        // 3. VCF GENERATOR (SAVE CONTACT) - iOS Optimized
         // ==========================================
         function downloadVCF() {
             // Build the vCard string
             const vcfData = 
-            `BEGIN:VCARD
-            VERSION:3.0
-            FN:${userData.name}
-            TITLE:${userData.title}
-            TEL;TYPE=CELL:+${userData.phoneRaw}
-            EMAIL:${userData.email}
-            URL:${userData.linkedin}
-            URL:${userData.portfolio}
-            END:VCARD`;
+`BEGIN:VCARD
+VERSION:3.0
+FN:${userData.name}
+TITLE:${userData.title}
+TEL;TYPE=CELL:+${userData.phoneRaw}
+EMAIL:${userData.email}
+URL:${userData.linkedin}
+END:VCARD`;
 
-            // Create a Blob from the vCard string
-            const blob = new Blob([vcfData], { type: 'text/vcard;charset=utf-8' });
-            const url = window.URL.createObjectURL(blob);
+            const fileName = `${userData.name.replace(/\s+/g, '_')}_Contact.vcf`;
             
-            // Create a temporary anchor tag to trigger the download
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `${userData.name.replace(/\s+/g, '_')}_Contact.vcf`);
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+            // Create a File object (better for mobile sharing than just a Blob)
+            const file = new File([vcfData], fileName, { type: 'text/vcard' });
+
+            // 1. Try Native Mobile Share (Works perfectly on iOS/Android)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    files: [file],
+                    title: userData.name,
+                }).catch(err => console.log('Sharing dismissed or failed:', err));
+            } 
+            // 2. Fallback for Desktop Browsers
+            else {
+                const blob = new Blob([vcfData], { type: 'text/vcard;charset=utf-8' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
         }
 
         // ==========================================
